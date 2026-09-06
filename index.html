@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MTG BuyList Comparer - par Lilian (Naereen)</title>
-    <link rel="stylesheet" href="index.css">
+    <title>Magic the Gathering "Buy List Comparer" - par Lilian (Naereen)</title>
+    <link rel="stylesheet" href="css/index.css">
 
-    <!-- Importation des modules via CDN -->
-    <!-- TODO: inclure ces modules localement, pour ne pas dépendre du CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- OLD: Importation des modules via CDN -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script> -->
+    <!-- DONE: inclure ces modules localement, pour ne pas dépendre du CDN -->
+    <script src="js/xlsx.full.min.js"></script>
+    <script src="js/papaparse.min.js"></script>
 </head>
 <body>
     <main class="container">
         <header>
-            <h1>MTG BuyList Comparer</h1>
+            <h1>Magic the Gathering "Buy List Comparer"</h1>
             <p>Comparez l'intersection entre une BuyList (.xlsx) et une collection scannée (.csv).</p>
         </header>
 
@@ -87,6 +89,23 @@
                 <span>Prix de rachat total proposé :</span>
                 <span id="grandTotal" class="total-price">0.00 €</span>
             </div>
+        </section>
+
+        <section class="about-section" aria-labelledby="about-title">
+            <h2 id="about-title">À propos</h2>
+            <p>
+                MTG BuyList Comparer est un petit outil web qui compare une liste d'achat Magic: The Gathering au format .xlsx avec une collection scannée au format .csv. Tout le traitement se fait dans le navigateur : les fichiers sélectionnés ne sont pas envoyés à un serveur.
+            </p>
+            <p>
+                Pour l'utiliser, choisissez d'abord le fichier de BuyList, puis le fichier de collection scannée, et lancez la comparaison. Le tableau de résultats affiche les cartes retrouvées dans les deux listes, leur quantité, leur prix unitaire et le total proposé. Le mode diagnostic permet de vérifier les colonnes détectées si aucune correspondance n'apparaît.
+            </p>
+            <p>
+                Cet outil a été écrit par <a href="https://github.com/Naereen" target="_blank" rel="noopener noreferrer">Lilian Besson (Naereen)</a> en septembre 2026, sous forme d'application HTML, CSS et JavaScript statique, avec XLSX et PapaParse chargés depuis un CDN.
+            </p>
+            <p class="about-links">
+                <a href="LICENSE">MIT License</a>
+                <a href="https://github.com/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering" target="_blank" rel="noopener noreferrer">Projet sur GitHub</a>
+            </p>
         </section>
     </main>
 
