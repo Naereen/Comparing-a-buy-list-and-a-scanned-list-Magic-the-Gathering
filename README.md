@@ -2,7 +2,7 @@
 
 Une petite application web, côté navigateur et en JavaScript pur, pour comparer une liste d'achat Magic: The Gathering avec une liste de collection scannée, par exemple depuis ManaBox ou une autre application mobile.
 
-## Screenshots
+## Screenshots demo
 
 ### The web app before loading any data
 
@@ -29,6 +29,8 @@ You can buy these cards, and ignore the rest!
 
 - Or on my website: <https://perso.crans.org/besson/publis/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering/>
 
+--------------------------------------------------
+
 ## Comment utiliser cette application ?
 
 L'application s'utilise directement dans une page web, sans installation ni compte utilisateur.
@@ -42,25 +44,28 @@ L'application s'utilise directement dans une page web, sans installation ni comp
 
 Si aucune correspondance n'apparaît, utilisez le bouton **Afficher les données brutes (Diagnostic)**. Il affiche les en-têtes détectés et les premières lignes de chaque fichier, ce qui permet de vérifier que les colonnes attendues sont bien présentes.
 
-## Données et confidentialité
+### Données et confidentialité
 
-Les fichiers sont lus dans votre navigateur. Ils ne sont pas envoyés à un serveur par cette application. Les bibliothèques JavaScript utilisées pour lire les fichiers `.xlsx` et `.csv` sont chargées depuis un CDN.
+Les fichiers sont lus dans votre navigateur. Ils ne sont pas envoyés à un serveur par cette application. Les bibliothèques JavaScript utilisées pour lire les fichiers `.xlsx` et `.csv` étaient chargées depuis un CDN au début, mais elles sont désormais chargées localement (cf. dossier [`js/`](js/)).
 
-## Formats attendus
+### Formats attendus
 
-- La BuyList doit être un fichier `.xlsx` avec au moins une colonne de nom de carte et une colonne de prix.
-- La collection scannée doit être un fichier `.csv` avec au moins une colonne de nom de carte. Une colonne de quantité est recommandée ; si elle manque, l'application considère une quantité de 1.
+- La **BuyList** doit être un fichier `.xlsx` avec au moins une colonne de nom de carte et une colonne de prix. *Ces prix doivent être de vraies valeurs numériques, pas des calculs !*
+- La **collection scannée** doit être un fichier `.csv` avec au moins une colonne de nom de carte. Une colonne de quantité est recommandée ; si elle manque, l'application considère une quantité de 1.
 - Les noms de colonnes courants comme `Name`, `Card Name`, `Nom`, `Price`, `Prix`, `Quantity`, `Qty` ou `Quantité` sont reconnus automatiquement.
 
 L'application normalise les noms de cartes pour faciliter la comparaison : casse ignorée, espaces simplifiés, ponctuation courante retirée, et première moitié utilisée pour les cartes doubles de type `Fire // Ice`.
+
+--------------------------------------------------
 
 ## À propos
 
 Cet outil a été écrit par [Lilian Besson (Naereen)](https://github.com/Naereen) en septembre 2026, comme application statique HTML, CSS et JavaScript. Le code source est disponible sur GitHub : <https://github.com/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering>.
 
----
+Parce que ça semble à la mode, j'ai utilise un peu "Google Gemini" (modèle Pro 3.1, version gratuite), et "GitHub Copilot".
+Les bonnes idées sont les leurs, et les erreurs sont les miennes.
 
-## :scroll: Licence ? [![GitHub license](https://img.shields.io/github/license/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering)](https://github.com/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering/blob/master/LICENSE)
+### :scroll: Licence ? [![GitHub license](https://img.shields.io/github/license/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering)](https://github.com/Naereen/Comparing-a-buy-list-and-a-scanned-list-Magic-the-Gathering/blob/master/LICENSE)
 
 [Licence MIT](https://lbesson.mit-license.org/) (fichier [LICENSE](LICENSE)).
 © [Lilian Besson](https://GitHub.com/Naereen), Sept. 2026.
