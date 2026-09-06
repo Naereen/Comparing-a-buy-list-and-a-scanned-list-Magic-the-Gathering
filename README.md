@@ -2,7 +2,26 @@
 
 Une petite application web, côté navigateur et en JavaScript pur, pour comparer une liste d'achat Magic: The Gathering avec une liste de collection scannée, par exemple depuis ManaBox ou une autre application mobile.
 
-WORK IN PROGRESS!
+## Screenshots
+
+### The web app before loading any data
+
+![screenshots/screenshot-full-page-with-footer-3.png](screenshots/screenshot-full-page-with-footer-3.png)
+
+
+### After a successful comparison
+
+The tool found some matches between the two lists:
+
+![screenshots/screenshot-full-page-without-footer-2.png](screenshots/screenshot-full-page-without-footer-2.png)
+
+You can buy these cards, and ignore the rest!
+
+### Full page (just for example)
+
+![screenshots/screenshot-full-page-1.png](screenshots/screenshot-full-page-1.png)
+
+-------------------------------------------------
 
 ## Where to find this app online?
 
