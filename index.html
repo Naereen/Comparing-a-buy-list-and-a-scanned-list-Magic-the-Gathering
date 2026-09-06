@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG BuyList Comparer - par Lilian (Naereen)</title>
+    <link rel="stylesheet" href="index.css">
+
+    <!-- Importation des modules via CDN -->
+    <!-- TODO: inclure ces modules localement, pour ne pas dépendre du CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>MTG BuyList Comparer</h1>
+            <p>Comparez l'intersection entre une BuyList (.xlsx) et une collection scannée (.csv).</p>
+        </header>
+
+        <section class="upload-section">
+            <div class="file-input-group">
+                <label for="fileA">1. Liste d'achat (Fichier A - .xlsx)</label>
+                <input type="file" id="fileA" accept=".xlsx">
+            </div>
+
+            <div class="file-input-group">
+                <label for="fileB">2. Collection scannée (Fichier B - .csv)</label>
+                <input type="file" id="fileB" accept=".csv">
+            </div>
+
+            <div class="actions-group">
+                <button id="compareBtn" disabled>Comparer les listes</button>
+                <button id="toggleDebugBtn" class="btn-diagnostic hidden">Afficher les données brutes (Diagnostic)</button>
+            </div>
+        </section>
+
+        <!-- SECTION DE DIAGNOSTIC / DEBUG -->
+        <section id="debugSection" class="hidden">
+            <h2>Mode Diagnostic</h2>
+            <p class="debug-notice">Affichage des 1000 premières lignes telles qu'elles sont lues en mémoire par l'application. Vérifiez particulièrement le nom des colonnes (En-têtes détectés).</p>
+
+            <div class="debug-panel">
+                <h3>Fichier A : BuyList (.xlsx)</h3>
+                <div id="debugHeadersA" class="debug-headers">En-têtes détectés : <span>Aucun</span></div>
+                <div class="table-scroll">
+                    <table id="debugTableA">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="debug-panel">
+                <h3>Fichier B : Collection Scannée (.csv)</h3>
+                <div id="debugHeadersB" class="debug-headers">En-têtes détectés : <span>Aucun</span></div>
+                <div class="table-scroll">
+                    <table id="debugTableB">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION DES RÉSULTATS -->
+        <section id="resultsSection" class="hidden">
+            <h2>Résultat de la correspondance</h2>
+
+            <div class="table-container">
+                <table id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Carte (Nom normalisé)</th>
+                            <th class="number-col">Quantité trouvée</th>
+                            <th class="number-col">Prix Unitaire</th>
+                            <th class="number-col">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <!-- Injection des résultats -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="summary">
+                <span>Prix de rachat total proposé :</span>
+                <span id="grandTotal" class="total-price">0.00 €</span>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileAInput = document.getElementById('fileA');
+            const fileBInput = document.getElementById('fileB');
+            const compareBtn = document.getElementById('compareBtn');
+            const toggleDebugBtn = document.getElementById('toggleDebugBtn');
+
+            const resultsSection = document.getElementById('resultsSection');
+            const debugSection = document.getElementById('debugSection');
+            const resultsBody = document.getElementById('resultsBody');
+            const grandTotalEl = document.getElementById('grandTotal');
+
+            let buyListData = null;
+            let scannedListData = null;
+            let isDebugVisible = false;
+
+            // Activation des boutons
+            const checkFiles = () => {
+                const ready = fileAInput.files.length > 0 && fileBInput.files.length > 0;
+                compareBtn.disabled = !ready;
+            };
+
+            fileAInput.addEventListener('change', checkFiles);
+            fileBInput.addEventListener('change', checkFiles);
+
+            // Gestion du bouton de debug
+            toggleDebugBtn.addEventListener('click', () => {
+                isDebugVisible = !isDebugVisible;
+                debugSection.classList.toggle('hidden', !isDebugVisible);
+                toggleDebugBtn.textContent = isDebugVisible ? 'Masquer les données brutes' : 'Afficher les données brutes (Diagnostic)';
+            });
+
+            // Lancement de la comparaison
+            compareBtn.addEventListener('click', async () => {
+                compareBtn.textContent = 'Extraction et calculs en cours...';
+                compareBtn.disabled = true;
+
+                try {
+                    buyListData = await parseXLSX(fileAInput.files[0]);
+                    scannedListData = await parseCSV(fileBInput.files[0]);
+
+                    // Remplissage des panneaux de diagnostic
+                    renderDebugTable(buyListData, 'debugTableA', 'debugHeadersA');
+                    renderDebugTable(scannedListData, 'debugTableB', 'debugHeadersB');
+
+                    // Rendre le bouton de debug disponible
+                    toggleDebugBtn.classList.remove('hidden');
+
+                    // Comparaison algorithmique
+                    processComparison(buyListData, scannedListData);
+                } catch (error) {
+                    alert("Erreur critique lors de l'analyse : " + error.message);
+                    console.error(error);
+                } finally {
+                    compareBtn.textContent = 'Comparer les listes';
+                    compareBtn.disabled = false;
+                }
+            });
+
+            // ---------------------------------------------------------
+            // FONCTIONS DE PARSING
+            // ---------------------------------------------------------
+
+            function parseXLSX(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                            resolve(json);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            function parseCSV(file) {
+                return new Promise((resolve, reject) => {
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        // Permet à PapaParse de détecter ';' ou ',' automatiquement
+                        dynamicTyping: false,
+                        complete: (results) => resolve(results.data),
+                        error: (err) => reject(err)
+                    });
+                });
+            }
+
+            // ---------------------------------------------------------
+            // NORMALISATION (Le cœur du moteur de recherche)
+            // ---------------------------------------------------------
+
+            function normalizeCardName(name) {
+                if (!name || typeof name !== 'string') return "";
+
+                let norm = name.toLowerCase().trim();
+
+                // 1. Gérer les cartes doubles (Split cards / MDFC)
+                // Ex: "Fire // Ice" devient "fire"
+                if (norm.includes('//')) {
+                    norm = norm.split('//')[0].trim();
+                }
+
+                // 2. Supprimer la ponctuation classique qui diffère selon les exports
+                // Supprime: virgules, apostrophes, tirets, points
+                // Ex: "Lim-Dûl's Vault" -> "limdûls vault"
+                // Ex: "Boseiju, Who Endures" -> "boseiju who endures"
+                norm = norm.replace(/[',.\-]/g, '');
+
+                // 3. Remplacer les espaces multiples par un seul espace
+                norm = norm.replace(/\s+/g, ' ');
+
+                return norm;
+            }
+
+            // ---------------------------------------------------------
+            // LOGIQUE DE COMPARAISON
+            // ---------------------------------------------------------
+
+            function processComparison(buyListRaw, scannedListRaw) {
+                const buyListMap = new Map();
+
+                // 1. Construction du dictionnaire en O(1)
+                buyListRaw.forEach(row => {
+                    // Extraction agnostique de la colonne (Name, Card Name, etc.)
+                    const name = getBestMatchingKey(row, ['name', 'card name', 'cardname', 'carte', 'nom']);
+                    const priceRaw = getBestMatchingKey(row, ['price', 'prix', 'value', 'achat', 'rachat', 'prix de rachat', 'buy price', 'purchase price', 'prix d\'achat']);
+
+                    if (name && priceRaw !== undefined) {
+                        const normalizedName = normalizeCardName(name);
+                        const price = parseFloat(priceRaw.toString().replace(/[^0-9.,\-]/g, '').replace(',', '.'));
+
+                        if (!isNaN(price) && normalizedName.length > 0) {
+                            buyListMap.set(normalizedName, {
+                                originalName: name, // On garde le nom d'origine pour l'affichage
+                                price: price
+                            });
+                        }
+                    }
+                });
+
+                let grandTotal = 0;
+                const matchesMap = new Map();
+
+                // 2. Balayage de la collection
+                scannedListRaw.forEach(row => {
+                    const name = getBestMatchingKey(row, ['name', 'card name', 'cardname', 'carte', 'nom']);
+                    const qtyRaw = getBestMatchingKey(row, ['quantity', 'quantité', 'count', 'qty', 'nombre']);
+                    const qty = parseInt(qtyRaw || 1, 10);
+
+                    if (name) {
+                        const searchName = normalizeCardName(name);
+
+                        if (buyListMap.has(searchName)) {
+                            const buyListData = buyListMap.get(searchName);
+
+                            const currentMatch = matchesMap.get(searchName) || {
+                                displayName: buyListData.originalName,
+                                qty: 0,
+                                unitPrice: buyListData.price
+                            };
+
+                            currentMatch.qty += qty;
+                            matchesMap.set(searchName, currentMatch);
+                        }
+                    }
+                });
+
+                // 3. Rendu HTML
+                resultsBody.innerHTML = '';
+
+                if (matchesMap.size === 0) {
+                    resultsBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 2rem;">Aucune correspondance. Consultez le mode Diagnostic pour vérifier le nom de vos colonnes.</td></tr>';
+                    grandTotalEl.textContent = '0.00 €';
+                } else {
+                    matchesMap.forEach(match => {
+                        const lineTotal = match.qty * match.unitPrice;
+                        grandTotal += lineTotal;
+
+                        // Génération propre de l'URL Scryfall (les espaces deviennent des '+' ou sont encodés)
+                        const scryfallUrl = `https://scryfall.com/search?q=${encodeURIComponent(match.displayName)}`;
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><a href="${scryfallUrl}" target="_blank" rel="noopener noreferrer">${escapeHTML(match.displayName)}</a></td>
+                            <td class="number-col">${match.qty}</td>
+                            <td class="number-col">${match.unitPrice.toFixed(2)} €</td>
+                            <td class="number-col bold">${lineTotal.toFixed(2)} €</td>
+                        `;
+                        resultsBody.appendChild(tr);
+                    });
+
+                    grandTotalEl.textContent = `${grandTotal.toFixed(2)} €`;
+                }
+
+                resultsSection.classList.remove('hidden');
+            }
+
+            // ---------------------------------------------------------
+            // UTILITAIRES
+            // ---------------------------------------------------------
+
+            // Recherche la clé d'un objet qui correspond (insensible à la casse) à une liste de candidats
+            function getBestMatchingKey(obj, candidates) {
+                const keys = Object.keys(obj);
+                for (const candidate of candidates) {
+                    const foundKey = keys.find(k => k.toLowerCase().trim() === candidate);
+                    if (foundKey) return obj[foundKey];
+                }
+                return null;
+            }
+
+            // Affiche les données JSON brutes dans les tableaux HTML de diagnostic
+            function renderDebugTable(dataArray, tableId, headersId) {
+                const table = document.getElementById(tableId);
+                const thead = table.querySelector('thead');
+                const tbody = table.querySelector('tbody');
+                const headersContainer = document.getElementById(headersId);
+
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+
+                if (!dataArray || dataArray.length === 0) {
+                    headersContainer.innerHTML = 'En-têtes détectés : <span style="color: #f44336;">Fichier vide ou illisible</span>';
+                    return;
+                }
+
+                // Extraction exhaustive de toutes les clés existantes dans le dataset
+                const allKeys = Array.from(new Set(dataArray.flatMap(Object.keys)));
+
+                // Affichage textuel des en-têtes
+                headersContainer.innerHTML = `En-têtes détectés : <strong>[ ${allKeys.map(k => `"${escapeHTML(k)}"`).join(', ')} ]</strong>`;
+
+                // Création du thead HTML
+                const trHead = document.createElement('tr');
+                allKeys.forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = key;
+                    trHead.appendChild(th);
+                });
+                thead.appendChild(trHead);
+
+                // Création du tbody HTML (Limité aux 1000 premières lignes pour ne pas geler le DOM)
+                const limit = Math.min(dataArray.length, 1000);
+                for (let i = 0; i < limit; i++) {
+                    const row = dataArray[i];
+                    const tr = document.createElement('tr');
+
+                    allKeys.forEach(key => {
+                        const td = document.createElement('td');
+                        // Conversion en string pour l'affichage, ou 'null/undefined' géré
+                        td.textContent = row[key] !== undefined && row[key] !== null ? row[key].toString() : '';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                }
+
+                if (dataArray.length > 1000) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = allKeys.length;
+                    td.style.textAlign = 'center';
+                    td.style.fontStyle = 'italic';
+                    td.style.color = '#888';
+                    td.textContent = `... et ${dataArray.length - 1000} autres lignes non affichées.`;
+                    tr.appendChild(td);
+                    tbody.appendChild(tr);
+                }
+            }
+
+            function escapeHTML(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[&<>'"]/g, tag => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+                }[tag]));
+            }
+        });
+    </script>
+</body>
+</html>
